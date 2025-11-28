@@ -1,2 +1,2 @@
 # memorydb
-A simple in ram key value db in rust
+A simple in memory key value db in rust

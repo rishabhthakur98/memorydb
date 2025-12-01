@@ -1,7 +1,5 @@
 use axum::{
-    extract::{Extension, Path, State},
-    routing::{get, post},
-    Json, Router,
+    Json, Router, body::Body, extract::{Extension, Path, State}, response:: Response, routing::{get, post}
 };
 use serde_json::{json, Value};
 use std::{collections::HashMap, sync::Arc};
@@ -42,63 +40,55 @@ async fn main() {
 
 async fn getvalue(
     State(data): State<Arc<Mutex<HashMap<String, String>>>>,
+    Path(key): Path<String>,
     headers: HeaderMap,
-    body: Bytes,
-) -> Json<serde_json::Value> {
-    println!("GET body: {:?}", body);
-    println!("GET headers: {:?}", headers);
-    let k="hello";
-    let v="universe";
+    body: Bytes
+) -> Response<(Body)> {
     let map = data.lock().await;
-    println!("value of 'hello': {:?}", map.get("hello"));
     println!("entire map: {:?}", *map);
-
-    Json(json!({
-        // "key": key,
-        "key": "key",
-        // "value": value,
-         "value": "value",
-        "status": "ok"
-    }))
+    let value = map.get(&key).unwrap();
+    let res_body:String = format!(r#"{{"{}":"{:?}"}}"#, key, value);
+    let body = Body::from(res_body);
+    let response = Response::builder()
+    .status(200)
+    .header("Content-Type", "application/json")
+    .body(body)
+    .unwrap();
+    return response
 }
 
-async fn changevalue(
+
+
+    async fn insertkeyvalue(
     State(data): State<Arc<Mutex<HashMap<String, String>>>>,
     headers: HeaderMap,
-    body: Bytes,
-) -> Json<serde_json::Value> {
-    println!("POST body: {:?}", body);
-    println!("POST headers: {:?}", headers);
+    body: Bytes)
+    -> Response<(Body)> {
     let a = str::from_utf8(&body).unwrap();
     println!("a: {:?}", a);
-    let json: Value = serde_json::from_str(a).unwrap();
-    println!("json is  {:?}", json);
+// Step 1: parse outer string -> gives inner JSON string
+let inner = serde_json::from_str::<String>(a).unwrap();
+// Step 2: parse inner JSON to real object
+let json_data: Value = serde_json::from_str(&inner).unwrap();
 
+let mut map = data.lock().await;
 
-    let k="hello";
-    let v="universe";
-    let mut map = data.lock().await;
-    map.insert(k.to_string(), v.to_string());
-    println!("value of 'hello': {:?}", map.get("hello"));
-    println!("entire map: {:?}", *map);
-    //  if let Some(obj) = json.as_object() {
-    //     for key in obj.keys() {
-    //         println!("kv: {}, {:?}", key, json[key]);
-            //  let mut map = data.lock().await;  // mutable access
-            //  let value = json[key];
-            // map.insert(key.clone(), value.clone());
-        //}
-    //}
-
-    return Json(json!({
-        // "key": key,
-        "key": "key",
-        // "new_value": new_value,
-        "status": "updated"
-    }));
+for (key, value) in json_data.as_object().unwrap() {
+    map.insert(key.clone(), value.as_str().unwrap_or(&value.to_string()).to_string());
+}
     
+   
+    println!("entire map: {:?}", *map);
+    let res_body:String = format!(r#"{{"status":"done"}}"#);
+    let body = Body::from(res_body);
+    let response = Response::builder()
+    .status(200)
+    .header("Content-Type", "application/json")
+    .body(body)
+    .unwrap();
+    return response
     }
 
 
-    async fn insertkeyvalue(){}
+
     async fn getallkeyvalue(){}

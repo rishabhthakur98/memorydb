@@ -62,14 +62,10 @@ async fn getvalue(
     async fn insertkeyvalue(
     State(data): State<Arc<Mutex<HashMap<String, String>>>>,
     headers: HeaderMap,
-    body: Bytes)
+    body: String)
     -> Response<(Body)> {
-    let a = str::from_utf8(&body).unwrap();
-    println!("a: {:?}", a);
-// Step 1: parse outer string -> gives inner JSON string
-let inner = serde_json::from_str::<String>(a).unwrap();
-// Step 2: parse inner JSON to real object
-let json_data: Value = serde_json::from_str(&inner).unwrap();
+
+let json_data: Value = serde_json::from_str(&body).unwrap();
 
 let mut map = data.lock().await;
 
@@ -80,15 +76,33 @@ for (key, value) in json_data.as_object().unwrap() {
    
     println!("entire map: {:?}", *map);
     let res_body:String = format!(r#"{{"status":"done"}}"#);
-    let body = Body::from(res_body);
+    let res_body = Body::from(res_body);
+
     let response = Response::builder()
     .status(200)
     .header("Content-Type", "application/json")
-    .body(body)
+    .body(res_body)
     .unwrap();
     return response
     }
 
 
 
-    async fn getallkeyvalue(){}
+    async fn getallkeyvalue(State(data): State<Arc<Mutex<HashMap<String, String>>>>,
+    headers: HeaderMap)
+    -> Json<serde_json::Value> {
+        println!("This is first");
+        let map = data.lock().await;
+
+// for (key, value) in json_data.as_object().unwrap() {
+//     map.insert(key.clone(), value.as_str().unwrap_or(&value.to_string()).to_string());
+// }
+    
+   
+    println!("entire map: {:?}", *map);
+
+    Json(json!({
+
+         "data": *map
+    }))
+    }

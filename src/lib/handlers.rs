@@ -1,20 +1,17 @@
 
 use axum::{
-    Json, Router, body::Body, extract::{Extension, Path, State}, response:: Response, routing::{get, post}
+    Json, body::Body, extract::{ Path, State}, response:: Response
 };
 use serde_json::{json, Value};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::Mutex;
 
-use axum::body::Bytes;
-use axum::http::HeaderMap;
+
 
 pub async fn getvalue(
     State(data): State<Arc<Mutex<HashMap<String, String>>>>,
-    Path(key): Path<String>,
-    headers: HeaderMap,
-    body: Bytes
-) -> Response<(Body)> {
+    Path(key): Path<String>
+) -> Response<Body> {
     let map = data.lock().await;
     println!("entire map: {:?}", *map);
     let value = map.get(&key).unwrap();
@@ -32,48 +29,35 @@ pub async fn getvalue(
 
    pub async fn insertkeyvalue(
     State(data): State<Arc<Mutex<HashMap<String, String>>>>,
-    headers: HeaderMap,
-    body: String)
-    -> Response<(Body)> {
+    body: String
+)-> Response<Body> {
 
 let json_data: Value = serde_json::from_str(&body).unwrap();
 
-let mut map = data.lock().await;
+let mut hash_map = data.lock().await;
 
 for (key, value) in json_data.as_object().unwrap() {
-    map.insert(key.clone(), value.as_str().unwrap_or(&value.to_string()).to_string());
-}
-    
-   
-    println!("entire map: {:?}", *map);
+    hash_map.insert(key.clone(), value.as_str().unwrap_or(&value.to_string()).to_string());
+    }
     let res_body:String = format!(r#"{{"status":"done"}}"#);
     let res_body = Body::from(res_body);
 
-    let response = Response::builder()
+    Response::builder()
     .status(200)
     .header("Content-Type", "application/json")
     .body(res_body)
-    .unwrap();
-    return response
+    .unwrap()
     }
 
 
 
    pub async fn getallkeyvalue(State(data): State<Arc<Mutex<HashMap<String, String>>>>,
-    headers: HeaderMap)
-    -> Json<serde_json::Value> {
+)    -> Json<serde_json::Value> {
         println!("This is first");
-        let map = data.lock().await;
-
-// for (key, value) in json_data.as_object().unwrap() {
-//     map.insert(key.clone(), value.as_str().unwrap_or(&value.to_string()).to_string());
-// }
-    
-   
-    println!("entire map: {:?}", *map);
+        let hash_map = data.lock().await;
 
     Json(json!({
 
-         "data": *map
+         "data": *hash_map
     }))
     }

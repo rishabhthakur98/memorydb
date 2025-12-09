@@ -19,21 +19,24 @@ async fn main() {
         .with_state(hashmap_data)
         .layer(cors);
 
-    // let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
-    // axum::serve(listener, app).await.unwrap();
+    match tokio::net::TcpListener::bind("0.0.0.0:8000").await{
+        Ok(listener) => {
+            match axum::serve(listener, app)
+            .with_graceful_shutdown(shutdown_signal())
+            .await
+            
+            {
+                Ok(_server) => {
 
-
-    let listener = match tokio::net::TcpListener::bind("0.0.0.0:8000").await {
-        Ok(l) => l,
+                },
+                Err(e) => {
+                        eprintln!("Server error: {}", e);
+                }
+            }
+        },
         Err(e) => {
-            eprintln!("Failed to bind: {}", e);
-            return;
+                eprintln!("Failed to bind: {}", e);
         }
-    };
-
-    if let Err(e) = axum::serve(listener, app).
-    with_graceful_shutdown(shutdown_signal()).await {
-        eprintln!("Server error: {}", e);
     }
 
 }
